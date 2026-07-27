@@ -1,0 +1,449 @@
+{
+  "name": "Project 06 - AI Escalation Prevention & Intelligent Ticket Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-escalation-prevention",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -512,
+        -416
+      ],
+      "id": "b147b752-0dde-4280-8f11-175b6808a6b8",
+      "name": "Webhook",
+      "webhookId": "fdcfe00b-0e77-47cd-a7e0-714e20b52529"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "20b4cde2-ec2f-404f-ab8c-96ee9f2ddfef",
+              "name": "customer_name",
+              "value": "John Smith",
+              "type": "string"
+            },
+            {
+              "id": "928be33d-5855-49c7-8231-b13dd4d833b0",
+              "name": "customer_email",
+              "value": "john@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "e08c3a58-ae0a-4207-8c59-ea8125a8442f",
+              "name": "ticket_subject",
+              "value": "Payment deducted but order not placed",
+              "type": "string"
+            },
+            {
+              "id": "6895424b-d42f-46ed-bf40-835820b99d24",
+              "name": "ticket_description",
+              "value": "Money was deducted from my bank account but the order failed. I need this resolved immediately because this is my second complaint.",
+              "type": "string"
+            },
+            {
+              "id": "daf37353-8b9d-44c0-a87c-6bdddeb1ef97",
+              "name": "channel",
+              "value": "Website",
+              "type": "string"
+            },
+            {
+              "id": "bb129ce7-d094-4f26-88ab-20ca5acbdce7",
+              "name": "ticket_id",
+              "value": "TKT-2001",
+              "type": "string"
+            },
+            {
+              "id": "571bc7ab-948b-4797-afbb-45d8af600d3a",
+              "name": "created_at",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        -400
+      ],
+      "id": "c2496028-7ff9-48b4-96f1-6e69816feb06",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a Senior Customer Support Operations Manager.\n\nAnalyze this customer support ticket.\n\nCustomer Name:\n{{ $json.customer_name }}\n\nSubject:\n{{ $json.ticket_subject }}\n\nDescription:\n{{ $json.ticket_description }}\n\nReturn ONLY valid JSON.\n\n{\n  \"priority\": \"\",\n  \"department\": \"\",\n  \"sentiment\": \"\",\n  \"risk_score\": 0,\n  \"sla\": \"\",\n  \"recommended_action\": \"\"\n}\n\nRules:\n\nPriority must be one of:\nP1\nP2\nP3\n\nDepartment must be one of:\nPayments\nTechnical Support\nAccount Support\nGeneral Support\n\nSentiment must be one of:\nPositive\nNeutral\nNegative\n\nRisk score must be between 0 and 100.\n\nSLA must be one of:\n2 Hours\n4 Hours\n24 Hours\n\nRecommended action must be under 20 words."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        -384
+      ],
+      "id": "ace9c8c1-e6cc-4a23-9256-cb90a9d15a9d",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "tqaoFK5NpSihtVF8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a26947e0-23d3-43e9-abee-84b1dcf1cb93",
+              "name": "ai_response",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        -384
+      ],
+      "id": "b9ecacb9-2e1d-4fb9-8f33-a5dd1fdfae40",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = JSON.parse($json.ai_response);\n\nreturn [\n  {\n    json: data\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -384
+      ],
+      "id": "3f31d5a1-0f9a-4d65-a4b3-710fde0b9c6b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a34f437c-be91-43fe-93b6-3b8bd076f4e5",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "P1",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        352,
+        -384
+      ],
+      "id": "9f22e5ca-f289-437a-875d-8ff40d9ef792",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19wcYju5DeoAigMW03bY0yxNMOxfv6Tk9YeVXxJKKKS8",
+          "mode": "list",
+          "cachedResultName": "AI Escalation Prevention",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19wcYju5DeoAigMW03bY0yxNMOxfv6Tk9YeVXxJKKKS8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer_name": "={{ $('Edit Fields').item.json.customer_name }}",
+            "priority": "={{ $json.priority }}",
+            "department": "={{ $json.department }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "risk_score": "={{ $json.risk_score }}",
+            "sla": "={{ $json.sla }}",
+            "recommended_action": "={{ $json.recommended_action }}",
+            "created_at": "={{ $('Edit Fields').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "risk_score",
+              "displayName": "risk_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sla",
+              "displayName": "sla",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_action",
+              "displayName": "recommended_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        592,
+        -400
+      ],
+      "id": "7a7195a4-9e13-4538-af19-f46e11c7de7e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "ta7ulGd5H5UkP0CV",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "buddhadorababu412@gmail.com",
+        "toEmail": "buddhadorababu412@gmail.com",
+        "subject": "=🚨 P1 Escalation Alert - {{$json.customer_name}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        752,
+        -400
+      ],
+      "id": "87b93879-9f50-4dc2-8dc2-1b51bbc326bb",
+      "name": "Send an Email",
+      "webhookId": "8242a9eb-3a30-4426-8c40-68aaf5ca9ccd",
+      "credentials": {
+        "smtp": {
+          "id": "729WCpUl90jS5G8A",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"success\",\n  \"message\": \"P1 escalation processed successfully\",\n  \"customer\": \"{{$json.customer_name}}\",\n  \"priority\": \"{{$json.priority}}\",\n  \"email_sent\": true,\n  \"logged_in_sheet\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        -400
+      ],
+      "id": "b6898ac0-c4d0-4e31-b8b4-5b0a74dfb514",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6dfa420b-0819-496e-9a71-8928c0a6dbc9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "388594768cda9628d288e759936b257db188b4bdb5b2d4d1d67ecf434608a591"
+  },
+  "nodeGroups": [],
+  "id": "6nDw3HJj8vqALvZE",
+  "tags": []
+}
